@@ -40,6 +40,9 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+
+                    var responseData = JSON.parse(xhr.responseText);
+                    callback(responseData);
                 }
             } 
             catch(e) {
@@ -50,19 +53,32 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.send(JSON.stringify(objects));
 }
 
 
-world = {};
 
-//XXX: TODO Make this prettier!
+world = {};
+// author: Michael Cresta
+// https://stackoverflow.com/questions/27891482/how-to-have-a-circular-inner-shadow-for-canvas-shape
+
+// XXX: TODO Make this prettier!
+// add shadow for the circle and change the lineWidth
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
-        lineWidth = 3;
+        lineWidth = 2;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
+        shadowColor = 'white';
+        shadowBlur = 15;
+        shadowOffsetX = 0;
+        shadowOffsetY = 0;
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
@@ -136,9 +152,14 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
-    drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    console.log(entity);
+    // drawNextFrame(); // (but should we?)
+    //XXX: Send a XHTML Request that updates the entity you just modified!
+    var url = "http://127.0.0.1:5000/entity" + entity;
+    sendJSONXMLHTTPRequest(url, data);
+    console.log('Entity updated successfully.');
+    
+  
 }
 
 var counter = 0;
@@ -247,28 +268,39 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour': getRandomColor()});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor()});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),
+                          'radius':15});
 });
 
+// https://stackoverflow.com/a/1484514 
+function getRandomColor() {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
     drawFrame();
-}
+    var url = "http://127.0.0.1:5000/world";
+    sendJSONXMLHTTPRequest(url, null, function(data){
+        drawNextFrame();
+    });
 
+}
 // 30 frames per second
 setInterval( update, 1000/30.0);
-
-
 
     </script>
 </body>
